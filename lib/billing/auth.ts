@@ -3,7 +3,7 @@ import { config } from "../config";
 import { idp } from "../idp";
 
 /**
- * Bearer-token checks for the demo "Acme CRM" API. This is the resource
+ * Bearer-token checks for the demo "Acme Billing" API. This is the resource
  * server: it trusts Okta-issued tokens (signature, issuer, audience, expiry)
  * and enforces scopes. In legacy mode it also accepts the shared static key.
  */
@@ -38,7 +38,7 @@ export async function authorize(req: Request, requiredScope: string): Promise<Au
     // The anti-pattern: one key, every permission, no idea which user asked.
     return {
       ok: true,
-      principal: { subject: "svc-crm-integration", actor: "unknown (shared API key)", scopes: ["*"], method: "static-api-key" },
+      principal: { subject: "svc-billing-integration", actor: "unknown (shared API key)", scopes: ["*"], method: "static-api-key" },
     };
   }
 

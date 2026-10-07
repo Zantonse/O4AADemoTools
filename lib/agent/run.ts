@@ -10,7 +10,7 @@ const MAX_TURNS = 8;
 function systemPrompt(ctx: AgentContext) {
   const user = ctx.session.user;
   return [
-    `You are ${config.agent.name}, an AI agent that helps Acme's customer support team work in Acme CRM.`,
+    `You are ${config.agent.name}, an AI agent that helps Acme's customer support team work in Acme Billing.`,
     `You act on behalf of the signed-in user${user ? `, ${user.name} (${user.email})` : ""}. Every tool call uses their delegated identity.`,
     "Use the tools to look up accounts and orders and to issue refunds. Look up an order before refunding it if you don't already know its amount.",
     `Refunds above ${store.settings.approvalThreshold} USD need the user's approval on their phone; the issue_refund tool handles that and waits for the decision.`,

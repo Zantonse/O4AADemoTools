@@ -105,7 +105,7 @@ export default function Home() {
       <div className="center">
         <div className="card">
           <h1>{info.agentName}</h1>
-          <p>An AI agent for Acme's support team that works in the CRM on the signed-in user's behalf.</p>
+          <p>An AI agent for Acme's support team that works in the billing system on the signed-in user's behalf.</p>
           {error && <div className="error-banner">{error}</div>}
           <ul className="feature-list">
             <li>Delegated access: short-lived, user-bound, scoped tokens via token exchange</li>

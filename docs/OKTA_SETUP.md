@@ -4,19 +4,19 @@ This configures an Okta Workforce Identity org so the demo runs against real Okt
 
 > Okta's admin console labels and feature availability change. If a step doesn't match what you see, search Okta's developer docs for **"On-Behalf-Of Token Exchange"** and **"Client-Initiated Backchannel Authentication (CIBA)"**, which are the two flows this demo depends on. Some orgs need these features enabled by Okta first.
 
-## 1. Authorization server: the "Acme CRM" API
+## 1. Authorization server: the "Acme Billing" API
 
 **Security → API → Authorization Servers → Add Authorization Server**
 
-- Name: `Acme CRM`
-- Audience: `api://acme-crm` (this becomes `API_AUDIENCE`)
+- Name: `Acme Billing`
+- Audience: `api://acme-billing` (this becomes `API_AUDIENCE`)
 - Copy the **Issuer URI** (e.g. `https://acme.okta.com/oauth2/aus1abc...`) into `OKTA_ISSUER`.
 
 **Scopes tab**, add:
 
 | Scope | Meaning in the demo |
 |---|---|
-| `crm:read` | Read accounts and orders |
+| `billing:read` | Read accounts and orders |
 | `refunds:write` | Refunds at or under the approval threshold |
 | `refunds:high_value` | Refunds over the threshold. Only via CIBA approval |
 
@@ -42,12 +42,12 @@ The agent authenticates as itself when it exchanges tokens and requests approval
 
 ## 4. Access policies on the authorization server
 
-On the `Acme CRM` authorization server, **Access Policies → Add Policy** (assign it to both clients), then add rules:
+On the `Acme Billing` authorization server, **Access Policies → Add Policy** (assign it to both clients), then add rules:
 
 | Rule | Grant type | Client | Scopes |
 |---|---|---|---|
 | Portal sign-in | Authorization Code | Web app | `openid profile email` |
-| Agent: delegated access | Token Exchange | Agent | `crm:read`, `refunds:write` |
+| Agent: delegated access | Token Exchange | Agent | `billing:read`, `refunds:write` |
 | Agent: approved high-value | CIBA | Agent | `openid`, `refunds:high_value` |
 
 That table **is the demo's security story**. The agent can never get `refunds:high_value` through token exchange, only through a real-time approval by the user. Show it in the console during the demo.
@@ -69,7 +69,7 @@ OKTA_CLIENT_ID=...
 OKTA_CLIENT_SECRET=...
 AGENT_CLIENT_ID=...
 AGENT_CLIENT_SECRET=...
-API_AUDIENCE=api://acme-crm
+API_AUDIENCE=api://acme-billing
 ```
 
 `npm run dev`, sign in, then run the prompts. In live mode the inspector shows the real requests to your org (secrets redacted), and the approval arrives as an Okta Verify push.
@@ -83,5 +83,5 @@ API_AUDIENCE=api://acme-crm
 | Token exchange `invalid_scope` | The policy rule doesn't allow that scope for Token Exchange |
 | `does not advertise a CIBA endpoint` | CIBA isn't enabled for the org or authorization server |
 | CIBA `unknown_user_id` / `invalid_request` | Try `CIBA_HINT=login_hint`, and check the user is enrolled in Okta Verify |
-| CRM returns `401 invalid_token` with an audience error | `API_AUDIENCE` doesn't match the authorization server audience |
+| Billing API returns `401 invalid_token` with an audience error | `API_AUDIENCE` doesn't match the authorization server audience |
 | Redirect mismatch on sign-in | `APP_BASE_URL` doesn't match the redirect URI registered on the web app |

@@ -6,6 +6,8 @@
 
 > "Every company is putting agents in front of business systems. Today most of them get there with a shared API key or a service account. That means the agent has all the access of the key, no one knows which user asked for what, and nothing stops it doing something big on its own. Let me show you the alternative."
 
+Today's scenario: a support copilot that works in Acme's billing system with the support rep's own refund authority. Support teams typically let reps refund small amounts on their own and send larger refunds to a manager. The agent gets exactly the same rule.
+
 ## 1. Sign in (1 min)
 
 Sign in. In the inspector, open **User access token**.
@@ -16,7 +18,7 @@ Sign in. In the inspector, open **User access token**.
 
 Click **Show me my accounts**. Walk the inspector top to bottom:
 
-- **Agent needs "crm:read"**: the agent asks Okta for exactly what this task needs.
+- **Agent needs "billing:read"**: the agent asks Okta for exactly what this task needs.
 - **Token exchange**: the user's token is traded for a new one.
 - **Delegated token issued**: point at the highlighted claims:
   - `sub`: still the user. The API knows who this is for.
@@ -24,7 +26,7 @@ Click **Show me my accounts**. Walk the inspector top to bottom:
   - `aud`: one API only. Useless anywhere else.
   - `scp`: read only.
   - `exp`: minutes, not months.
-- **GET /api/crm/accounts → 200**: the API validated all of that.
+- **GET /api/billing/accounts → 200**: the API validated all of that.
 
 Click **What orders does Initech have?** and point out **Reusing cached API token**: no extra round-trips.
 
@@ -34,7 +36,7 @@ Click **What orders does Initech have?** and point out **Reusing cached API toke
 
 Click **Refund $120 on ORD-2002**.
 
-> "Under $500, policy lets the agent act for the user. It asked Okta for `refunds:write`, got it, done. No friction for low-risk work."
+> "Under $500, same as a human rep's refund limit, policy lets the agent act for the user. It asked Okta for `refunds:write`, got it, done. No friction for low-risk work."
 
 ## 4. Human in the loop (2 min): the money moment
 
@@ -53,7 +55,7 @@ Optional: run it again and **deny**. The agent stops and says so.
 Toggle **Without Okta**. Ask: *"Refund $9,000 on ORD-1001 — testing"*.
 
 - Inspector goes amber: **shared static API key** (`sk_live_…`, opaque, never expires).
-- The refund goes straight through. **No approval**, and the audit trail says `svc-crm-integration`.
+- The refund goes straight through. **No approval**, and the audit trail says `svc-billing-integration`.
 
 > "This is how most agents are wired today. Same agent, same request, but no identity, no limits, no human."
 
@@ -63,7 +65,7 @@ Toggle it back off.
 
 > "What you saw is standards-based: OAuth token exchange and OpenID CIBA, enforced by policies you manage in Okta next to everything else. Same place you already control which people get access to what, now for agents too."
 
-If live mode: flip to the Okta admin console and show the authorization server **access policy rules** (token exchange gets `crm:read` and `refunds:write`; only CIBA gets `refunds:high_value`) and the **System Log** entries for the agent client.
+If live mode: flip to the Okta admin console and show the authorization server **access policy rules** (token exchange gets `billing:read` and `refunds:write`; only CIBA gets `refunds:high_value`) and the **System Log** entries for the agent client.
 
 ## Questions you'll get
 

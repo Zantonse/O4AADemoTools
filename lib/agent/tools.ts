@@ -13,14 +13,14 @@ import { store, type Session } from "../store";
 export interface AgentContext {
   session: Session;
   emit: Emit;
-  /** Origin of this app, where the demo CRM API lives. */
+  /** Origin of this app, where the demo billing API lives. */
   apiBase: string;
 }
 
 export const TOOLS: Anthropic.Beta.BetaTool[] = [
   {
     name: "list_accounts",
-    description: "List the customer accounts in Acme CRM with tier, ARR and owner.",
+    description: "List the customer accounts in Acme Billing with tier, ARR and owner.",
     input_schema: { type: "object", properties: {}, required: [], additionalProperties: false },
     strict: true,
   },
@@ -57,7 +57,7 @@ export const TOOLS: Anthropic.Beta.BetaTool[] = [
 const usd = (n: number) => n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-/** Gets a token for the CRM API carrying `scope`, via token exchange (or the legacy key). */
+/** Gets a token for the billing API carrying `scope`, via token exchange (or the legacy key). */
 async function getApiToken(ctx: AgentContext, scope: string): Promise<string> {
   const { session, emit } = ctx;
   if (store.settings.legacyMode) {
@@ -65,7 +65,7 @@ async function getApiToken(ctx: AgentContext, scope: string): Promise<string> {
       kind: "warning",
       title: "Agent uses the shared static API key",
       detail:
-        "Legacy mode: no user context, no scopes, never expires. Every agent run – and anyone who finds this key – has full access to the CRM.",
+        "Legacy mode: no user context, no scopes, never expires. Every agent run – and anyone who finds this key – has full access to the billing system.",
       token: tokenView("Static API key (from .env)", config.legacyApiKey),
       tags: ["legacy", "no identity"],
     });
@@ -88,7 +88,7 @@ async function getApiToken(ctx: AgentContext, scope: string): Promise<string> {
   }
   emit({
     kind: "info",
-    title: `Agent needs "${scope}" for the Acme CRM API`,
+    title: `Agent needs "${scope}" for the Acme Billing API`,
     detail:
       "Instead of holding a long-lived key, the agent trades the signed-in user's token for a short-lived token that is " +
       "scoped to one API, carries the user's identity, and names the agent as the actor.",
@@ -99,7 +99,7 @@ async function getApiToken(ctx: AgentContext, scope: string): Promise<string> {
     kind: "token",
     title: "Delegated token issued to the agent",
     detail: "sub = the user · act.sub = the agent · aud = one API · scp = only what's needed · short expiry.",
-    token: tokenView(`Agent → Acme CRM (${scope})`, tokens.access_token),
+    token: tokenView(`Agent → Acme Billing (${scope})`, tokens.access_token),
     tags: ["token-exchange"],
   });
   session.tokenCache[scope] = { token: tokens.access_token, exp: Date.now() + (tokens.expires_in ?? 300) * 1000 };
@@ -115,7 +115,7 @@ async function callApi(ctx: AgentContext, method: "GET" | "POST", path: string, 
   const json = (await res.json().catch(() => ({}))) as Record<string, unknown>;
   ctx.emit({
     kind: res.ok ? "http" : "error",
-    title: `Agent → Acme CRM: ${method} ${path}`,
+    title: `Agent → Acme Billing: ${method} ${path}`,
     http: {
       method,
       url: `${ctx.apiBase}${path}`,
@@ -167,7 +167,7 @@ async function requestApproval(ctx: AgentContext, scope: string, bindingMessage:
         kind: "token",
         title: "Approval-bound token issued",
         detail: "Minted only after the user said yes. It carries the high-value scope, the agent as actor, and is single-purpose.",
-        token: tokenView(`Agent → Acme CRM (${scope})`, result.tokens.access_token),
+        token: tokenView(`Agent → Acme Billing (${scope})`, result.tokens.access_token),
         tags: ["ciba"],
       });
       return result.tokens.access_token;
@@ -185,13 +185,13 @@ export async function runTool(ctx: AgentContext, name: string, input: ToolInput)
   switch (name) {
     case "list_accounts": {
       const token = await getApiToken(ctx, SCOPES.read);
-      const res = await callApi(ctx, "GET", "/api/crm/accounts", token);
+      const res = await callApi(ctx, "GET", "/api/billing/accounts", token);
       return JSON.stringify(res.json);
     }
     case "get_account_orders": {
       const token = await getApiToken(ctx, SCOPES.read);
       const id = encodeURIComponent(String(input.account_id));
-      const res = await callApi(ctx, "GET", `/api/crm/accounts/${id}/orders`, token);
+      const res = await callApi(ctx, "GET", `/api/billing/accounts/${id}/orders`, token);
       return JSON.stringify(res.json);
     }
     case "issue_refund": {
@@ -202,12 +202,12 @@ export async function runTool(ctx: AgentContext, name: string, input: ToolInput)
       const body = { order_id: orderId, amount, reason };
 
       if (store.settings.legacyMode) {
-        const res = await callApi(ctx, "POST", "/api/crm/refunds", await getApiToken(ctx, SCOPES.refund), body);
+        const res = await callApi(ctx, "POST", "/api/billing/refunds", await getApiToken(ctx, SCOPES.refund), body);
         if (res.ok) {
           ctx.emit({
             kind: "warning",
             title: `${usd(amount)} refund executed with no human approval`,
-            detail: 'The CRM audit log records "svc-crm-integration" – nobody can tell which user (if any) asked for this.',
+            detail: 'The billing audit log records "svc-billing-integration" – nobody can tell which user (if any) asked for this.',
             tags: ["legacy"],
           });
         }
@@ -221,21 +221,21 @@ export async function runTool(ctx: AgentContext, name: string, input: ToolInput)
           detail: "Policy lets the agent act on the user's behalf without an extra prompt.",
           tags: ["policy"],
         });
-        const res = await callApi(ctx, "POST", "/api/crm/refunds", await getApiToken(ctx, SCOPES.refund), body);
+        const res = await callApi(ctx, "POST", "/api/billing/refunds", await getApiToken(ctx, SCOPES.refund), body);
         return JSON.stringify(res.json);
       }
 
       ctx.emit({
         kind: "info",
         title: `${usd(amount)} exceeds the ${usd(threshold)} limit → human approval required`,
-        detail: `The CRM requires the "${SCOPES.refundHighValue}" scope, which Okta only issues through a CIBA approval – never through token exchange.`,
+        detail: `The billing API requires the "${SCOPES.refundHighValue}" scope, which Okta only issues through a CIBA approval – never through token exchange.`,
         tags: ["policy", "ciba"],
       });
       const approval = await requestApproval(ctx, `openid ${SCOPES.refundHighValue}`, `Approve ${usd(amount)} refund on ${orderId}?`);
       if (typeof approval !== "string") {
         return JSON.stringify({ error: "approval_denied", detail: approval.denied, note: "Do not retry unless the user asks." });
       }
-      const res = await callApi(ctx, "POST", "/api/crm/refunds", approval, body);
+      const res = await callApi(ctx, "POST", "/api/billing/refunds", approval, body);
       if (res.ok) {
         ctx.emit({
           kind: "success",

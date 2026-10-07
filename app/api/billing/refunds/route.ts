@@ -1,18 +1,18 @@
 import { SCOPES } from "@/lib/config";
-import { authorize } from "@/lib/crm/auth";
-import { crm, recordRefund } from "@/lib/crm/data";
+import { authorize } from "@/lib/billing/auth";
+import { billing, recordRefund } from "@/lib/billing/data";
 import { store } from "@/lib/store";
 
 export async function GET(req: Request) {
   const auth = await authorize(req, SCOPES.read);
   if (!auth.ok) return auth.response;
-  return Response.json({ refunds: crm.refunds });
+  return Response.json({ refunds: billing.refunds });
 }
 
 export async function POST(req: Request) {
   const body = (await req.json().catch(() => ({}))) as { order_id?: string; amount?: number; reason?: string };
   const amount = Number(body.amount);
-  const order = crm.orders.find((o) => o.id === String(body.order_id ?? "").toUpperCase());
+  const order = billing.orders.find((o) => o.id === String(body.order_id ?? "").toUpperCase());
   if (!order) return Response.json({ error: "not_found", error_description: `No order ${body.order_id}` }, { status: 404 });
   if (!(amount > 0) || amount > order.amount) {
     return Response.json({ error: "invalid_amount", error_description: `Amount must be between 0 and ${order.amount}` }, { status: 400 });

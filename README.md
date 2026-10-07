@@ -2,7 +2,9 @@
 
 A sales engineering demo kit for **Okta for AI Agents**. One web app, three things customers remember:
 
-1. **Delegated access.** An AI agent works in a business API *as the signed-in user*. It holds no API key: it exchanges the user's token for a short-lived token scoped to one API, carrying the user as `sub` and the agent as `act` (RFC 8693 token exchange).
+The story: a support copilot works in Acme's billing system (accounts, orders, refunds) with the signed-in support rep's own refund authority. Like real support teams, small refunds are fine on your own and big ones need sign-off.
+
+1. **Delegated access.** The agent calls the billing API *as the signed-in user*. It holds no API key: it exchanges the user's token for a short-lived token scoped to one API, carrying the user as `sub` and the agent as `act` (RFC 8693 token exchange).
 2. **Human-in-the-loop approval.** When the agent tries something risky (a refund over $500), the API demands a scope Okta only issues after the user approves a push on their phone (OpenID CIBA). Approve and the action goes through. Deny and the agent stops.
 3. **Token inspector.** Every identity step is shown live next to the chat: the requests to Okta, decoded JWTs with the important claims explained, and the API calls with their status codes.
 
@@ -50,7 +52,7 @@ See **[docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md)** for a 10-minute talk track wi
     │ NDJSON stream                   ▼
     │ (inspector events)        lib/agent/tools.ts
     │                            │ 1. token exchange / CIBA ──▶ Okta (or mock IdP)
-    │                            │ 2. Bearer <scoped token>  ──▶ /api/crm/* (demo "Acme CRM")
+    │                            │ 2. Bearer <scoped token>  ──▶ /api/billing/* ("Acme Billing")
     └────────────────────────────┘                               validates JWT + scope
 ```
 
@@ -62,13 +64,13 @@ See **[docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md)** for a 10-minute talk track wi
 | `lib/agent/` | Agent loop (Claude / scripted) and tools: where the identity work happens |
 | `lib/idp/okta.ts` | Real Okta adapter (discovery-based OAuth/OIDC) |
 | `lib/idp/mock.ts` | Offline Okta simulator with personas and a CIBA queue |
-| `app/api/crm/` + `lib/crm/` | The protected demo API and its token checks |
+| `app/api/billing/` + `lib/billing/` | The protected demo API and its token checks |
 
 ## Demo controls
 
 - **Without Okta**: the agent uses a static `sk_live_…` key (no user, no scopes, no approval).
 - **Approval over $**: the refund amount that needs human approval. The API enforces it, not the agent.
-- **Reset demo**: clears the chat, inspector, cached tokens and CRM data. Sign-in is kept.
+- **Reset demo**: clears the chat, inspector, cached tokens and billing data. Sign-in is kept.
 
 ## Limitations
 

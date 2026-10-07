@@ -3,7 +3,7 @@ export type DemoMode = "mock" | "okta";
 const env = (name: string, fallback = "") => process.env[name]?.trim() || fallback;
 
 export const SCOPES = {
-  read: "crm:read",
+  read: "billing:read",
   refund: "refunds:write",
   refundHighValue: "refunds:high_value",
 } as const;
@@ -23,7 +23,7 @@ export const config = {
       | "login_hint"
       | "id_token_hint",
   },
-  apiAudience: env("API_AUDIENCE", "api://acme-crm"),
+  apiAudience: env("API_AUDIENCE", "api://acme-billing"),
   agent: {
     engine: (env("ANTHROPIC_API_KEY") ? "claude" : "scripted") as "claude" | "scripted",
     model: env("AGENT_MODEL", "claude-opus-5-5"),
@@ -33,7 +33,7 @@ export const config = {
   },
   defaultApprovalThreshold: Number(env("APPROVAL_THRESHOLD", "500")) || 500,
   // The "before" picture: a long-lived, all-powerful key shared by every agent run.
-  legacyApiKey: "sk_live_acme_crm_7Fq2xK9mZ4vL1nR8wT3bY6",
+  legacyApiKey: "sk_live_acme_billing_7Fq2xK9mZ4vL1nR8wT3bY6",
 };
 
 export function agentClientId() {

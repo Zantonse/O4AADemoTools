@@ -155,7 +155,7 @@ export const mockIdp: IdentityProvider = {
     };
     const subject = await verify(subjectToken, "api://default");
     // Policy: token exchange may grant read + low-value refunds, never high-value ones.
-    const allowed = new Set<string>([ "crm:read", "refunds:write" ]);
+    const allowed = new Set<string>([ "billing:read", "refunds:write" ]);
     const denied = scope.split(" ").filter((s) => !allowed.has(s));
     if (denied.length) {
       const err = { error: "invalid_scope", error_description: `Policy does not allow ${denied.join(", ")} via token exchange` };

@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-/** Fake "Acme CRM" data the agent works against. */
+/** Fake "Acme Billing" data the agent works against. */
 
 export interface Account {
   id: string;
@@ -47,21 +47,21 @@ const SEED_ORDERS: Order[] = [
   { id: "ORD-4001", accountId: "ACC-400", item: "Starter plan (annual)", amount: 1_200, date: "2026-09-28", status: "shipped" },
 ];
 
-interface CrmState {
+interface BillingState {
   orders: Order[];
   refunds: Refund[];
 }
 
-const g = globalThis as typeof globalThis & { __o4aaCrm?: CrmState };
-export const crm: CrmState = (g.__o4aaCrm ??= { orders: structuredClone(SEED_ORDERS), refunds: [] });
+const g = globalThis as typeof globalThis & { __o4aaBilling?: BillingState };
+export const billing: BillingState = (g.__o4aaBilling ??= { orders: structuredClone(SEED_ORDERS), refunds: [] });
 
-export function resetCrm() {
-  crm.orders = structuredClone(SEED_ORDERS);
-  crm.refunds = [];
+export function resetBilling() {
+  billing.orders = structuredClone(SEED_ORDERS);
+  billing.refunds = [];
 }
 
 export function recordRefund(order: Order, amount: number, reason: string, performedBy: string, actor: string, authorization: string) {
-  const refunded = crm.refunds.filter((r) => r.orderId === order.id).reduce((sum, r) => sum + r.amount, 0) + amount;
+  const refunded = billing.refunds.filter((r) => r.orderId === order.id).reduce((sum, r) => sum + r.amount, 0) + amount;
   order.status = refunded >= order.amount ? "refunded" : "partially_refunded";
   const refund: Refund = {
     id: `RF-${randomUUID().slice(0, 8).toUpperCase()}`,
@@ -73,6 +73,6 @@ export function recordRefund(order: Order, amount: number, reason: string, perfo
     actor,
     authorization,
   };
-  crm.refunds.push(refund);
+  billing.refunds.push(refund);
   return refund;
 }
